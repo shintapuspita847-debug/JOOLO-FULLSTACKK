@@ -89,13 +89,14 @@ six-month access code reserved for the buyer email, and sends it through
 Brevo's **transactional email API**. The Brevo API key and Supabase
 service-role key are used only on the server.
 
-Configure these server-only environment variables in `.env.local` (and in
-your production hosting environment):
+Configure these environment variables in `.env.local` (and in your production
+hosting environment):
 
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase Project Settings → API → Project URL.
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase Project Settings → API Keys →
   `service_role` secret. Keep it private; never add a `NEXT_PUBLIC_` prefix.
-- `LYNK_MERCHANT_KEY` — the merchant key Lynk.id shows after saving the
-  webhook URL.
+- `LYNK_MERCHANT_KEY` (or existing `MERCHANT_KEY`) — the merchant key
+  Lynk.id shows after saving the webhook URL.
 - `LYNK_PRODUCT_UUID` — the JOOLO product UUID from a Lynk.id webhook
   `data.message_data.items[].uuid`.
 - `BREVO_API_KEY` — Brevo API key.
@@ -118,7 +119,56 @@ and do not resend an email after Brevo has accepted it. Failed email attempts
 retain the pending code so a Lynk retry can try again. The webhook ignores
 successful purchases for products other than `LYNK_PRODUCT_UUID`.
 
+Every new access code is a unique, cryptographically random 16-character
+uppercase alphanumeric string (for example, `V8R3T6Y1H5F2D9L4`). The database
+stores its SHA-256 hash and enforces uniqueness. Existing `JOOLO-...` codes
+remain accepted during onboarding.
+
 `CAMPAIGN_ID` is not used for these order-specific messages. A Brevo
 marketing campaign targets a list/audience; it is not a transactional
 per-purchase email. This flow sends each unique code using Brevo's
 transactional email API with the verified sender above.
+
+`CHECKOUT_ID` is not currently used by the webhook. Product filtering uses
+`LYNK_PRODUCT_UUID`, which must be the exact UUID from
+`data.message_data.items[].uuid`; a checkout ID is not interchangeable with
+that product UUID.
+
+### Webhook setup and troubleshooting
+
+1. Run the latest `supabase/schema.sql` in Supabase **SQL Editor**. Confirm
+   `public.joolo_admins` contains an administrator; the webhook associates
+   each generated code with one of these admins.
+2. In Lynk.id, set and save
+   `https://YOUR_PUBLIC_DOMAIN/api/webhooks/lynk` as the webhook URL. Copy the
+   merchant key Lynk provides after saving.
+3. In Vercel, open **Project → Settings → Environment Variables** and set
+   `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+   `LYNK_MERCHANT_KEY`, `LYNK_PRODUCT_UUID`, `BREVO_API_KEY`, and
+   `BREVO_SENDER_EMAIL` for the environment receiving payments (usually
+   **Production**). Optionally set `BREVO_SENDER_NAME`. Redeploy after
+   changing these values. Never put the service-role key in client code or in
+   a `NEXT_PUBLIC_` variable.
+4. Check Vercel **Logs → Functions** for `POST /api/webhooks/lynk` when a
+   payment arrives. A missing request usually means the Lynk webhook URL is
+   wrong or the production deployment is not current. HTTP `503` means a
+   required environment variable is missing; `401` means signature
+   verification failed; an ignored event with the product-mismatch warning
+   means `LYNK_PRODUCT_UUID` does not exactly match an item's `uuid` in the
+   Lynk payload. A `500` points to the Supabase SQL/RPC setup, and `502`
+   points to Brevo delivery.
+5. Check whether Supabase received an order:
+
+   ```sql
+   select lynk_payment_ref, buyer_email, product_title, email_status,
+          last_email_error, created_at
+   from public.lynk_purchase_orders
+   order by created_at desc
+   limit 20;
+   ```
+
+The local `.env.local` must also contain all required values to test locally.
+Lynk.id cannot deliver webhooks to `localhost`; use a deployed public URL or
+a configured HTTPS tunnel. After correcting configuration, replay the failed
+webhook from Lynk.id if available. Replays with the same payment `refId` are
+idempotent and reuse the original order and code.

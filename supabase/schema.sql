@@ -168,7 +168,7 @@ begin
      or char_length(normalized_name) > 100
      or coalesce(input_gender, '') not in ('woman', 'man')
      or coalesce(input_age_group, '') not in ('under_18', '18_25', 'over_25')
-     or coalesce(input_code, '') !~* '^JOOLO(-[A-Z0-9]{4}){3}(-[A-Z0-9]{4}){0,3}$' then
+     or coalesce(input_code, '') !~* '^([A-Z0-9]{16}|JOOLO(-[A-Z0-9]{4}){3}(-[A-Z0-9]{4}){0,3})$' then
     return 'invalid_profile';
   end if;
 
@@ -308,7 +308,7 @@ begin
      or input_amount is null
      or input_amount < 0
      or coalesce(input_code_hash, '') !~ '^[a-f0-9]{64}$'
-     or coalesce(input_raw_code, '') !~* '^JOOLO(-[A-Z0-9]{4}){6}$' then
+     or coalesce(input_raw_code, '') !~* '^[A-Z0-9]{16}$' then
     raise exception 'Invalid Lynk purchase data';
   end if;
 

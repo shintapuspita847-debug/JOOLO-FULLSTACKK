@@ -1,9 +1,9 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { generateAccessCode } from "@/lib/access-code";
 
 const MAX_CODES_PER_BATCH = 100;
-const CODE_PREFIX = "JOOLO";
 
 function getExpirationDate(createdAt: Date) {
   const expiration = new Date(createdAt);
@@ -15,15 +15,6 @@ function getExpirationDate(createdAt: Date) {
   ).getUTCDate();
   expiration.setUTCDate(Math.min(originalDay, lastDayOfMonth));
   return expiration;
-}
-
-function makeAccessCode() {
-  const value = randomBytes(12).toString("hex").toUpperCase();
-  const groups = value.match(/.{4}/g);
-  if (!groups) {
-    throw new Error("Could not format the access code.");
-  }
-  return `${CODE_PREFIX}-${groups.join("-")}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -104,7 +95,7 @@ export async function POST(request: NextRequest) {
   const expiresAt = getExpirationDate(createdAt).toISOString();
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const codes = Array.from({ length: quantity }, makeAccessCode);
+    const codes = Array.from({ length: quantity }, generateAccessCode);
     const records = codes.map((code) => ({
       code_hash: createHash("sha256").update(code).digest("hex"),
       created_by: user.id,

@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Pilih rentang usia yang tersedia." }, { status: 400 });
   }
 
-  if (!/^JOOLO(?:-[A-Z0-9]{4}){3}(?:-[A-Z0-9]{4}){0,3}$/.test(accessCode)) {
+  if (!/^(?:[A-Z0-9]{16}|JOOLO(?:-[A-Z0-9]{4}){3}(?:-[A-Z0-9]{4}){0,3})$/.test(accessCode)) {
     return NextResponse.json(
       { error: "Format kode akses tidak valid. Periksa kembali kode Anda." },
       { status: 400 },

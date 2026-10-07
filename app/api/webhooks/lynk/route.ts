@@ -1,6 +1,7 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { generateAccessCode } from "@/lib/access-code";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,12 +58,6 @@ function validSignature(
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 }
 
-function generateAccessCode() {
-  const groups = randomBytes(12).toString("hex").toUpperCase().match(/.{4}/g);
-  if (!groups) throw new Error("Could not generate an access code.");
-  return `JOOLO-${groups.join("-")}`;
-}
-
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -73,7 +68,7 @@ function escapeHtml(value: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const merchantKey = process.env.LYNK_MERCHANT_KEY;
+  const merchantKey = process.env.LYNK_MERCHANT_KEY ?? process.env.MERCHANT_KEY;
   const expectedProductUuid = process.env.LYNK_PRODUCT_UUID;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -89,6 +84,16 @@ export async function POST(request: NextRequest) {
     !brevoApiKey ||
     !senderEmail
   ) {
+    console.error("Lynk webhook: server configuration is incomplete.", {
+      missing: [
+        !merchantKey && "LYNK_MERCHANT_KEY",
+        !expectedProductUuid && "LYNK_PRODUCT_UUID",
+        !supabaseUrl && "NEXT_PUBLIC_SUPABASE_URL",
+        !serviceRoleKey && "SUPABASE_SERVICE_ROLE_KEY",
+        !brevoApiKey && "BREVO_API_KEY",
+        !senderEmail && "BREVO_SENDER_EMAIL",
+      ].filter(Boolean),
+    });
     return jsonError("Webhook belum dikonfigurasi sepenuhnya di environment server.", 503);
   }
 
@@ -114,6 +119,10 @@ export async function POST(request: NextRequest) {
     payment?.message_action !== "SUCCESS" ||
     String(payment.message_code) !== "0"
   ) {
+    console.info("Lynk webhook: ignoring non-success payment event.", {
+      action: payment?.message_action,
+      messageCode: payment?.message_code,
+    });
     return NextResponse.json({ received: true, ignored: true });
   }
 
@@ -136,6 +145,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (!validSignature(signature, amount, reference, messageId, merchantKey)) {
+    console.error("Lynk webhook: signature validation failed.", {
+      reference,
+      messageId,
+      hasSignature: Boolean(signature),
+    });
     return jsonError("Signature webhook Lynk.id tidak valid.", 401);
   }
 
@@ -157,6 +171,11 @@ export async function POST(request: NextRequest) {
   );
 
   if (!product) {
+    console.warn("Lynk webhook: successful payment did not contain configured product.", {
+      reference,
+      expectedProductConfigured: Boolean(expectedProductUuid),
+      itemCount: purchasedItems.length,
+    });
     return NextResponse.json({
       received: true,
       ignored: true,
@@ -310,4 +329,11 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ received: true, emailSent: true });
+}
+
+export async function GET() {
+  return NextResponse.json({
+    endpoint: "lynk-payment-webhook",
+    accepts: "POST",
+  });
 }

@@ -130,7 +130,7 @@ export default function OnboardingForm({ email }: { email: string }) {
             autoCapitalize="characters"
             spellCheck={false}
             maxLength={35}
-            placeholder="JOOLO-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+            placeholder="V8R3T6Y1H5F2D9L4"
             value={accessCode}
             onChange={(event) => setAccessCode(event.target.value.toUpperCase())}
             required
