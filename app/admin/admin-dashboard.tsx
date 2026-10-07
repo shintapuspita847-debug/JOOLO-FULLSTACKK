@@ -115,6 +115,10 @@ export default function AdminDashboard({ email }: { email: string }) {
   const [deletingBonusId, setDeletingBonusId] = useState("");
   const [bonusMessage, setBonusMessage] = useState("");
   const [bonusMessageType, setBonusMessageType] = useState<"success" | "error">("success");
+  const [testEmail, setTestEmail] = useState(email);
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const [testEmailMessage, setTestEmailMessage] = useState("");
+  const [testEmailMessageType, setTestEmailMessageType] = useState<"success" | "error">("success");
 
   useEffect(() => {
     async function loadBonuses() {
@@ -208,6 +212,38 @@ export default function AdminDashboard({ email }: { email: string }) {
       setBonusMessageType("error");
     } finally {
       setDeletingBonusId("");
+    }
+  }
+
+  async function handleSendTestEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setTestEmailMessage("");
+    setIsSendingTestEmail(true);
+    try {
+      const response = await fetch("/api/admin/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: testEmail }),
+      });
+      const result = (await response.json()) as {
+        success?: boolean;
+        email?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error ?? "Email tes gagal dikirim.");
+      }
+
+      setTestEmailMessage(`Email tes sudah diterima Brevo untuk dikirim ke ${result.email}. Periksa inbox dan folder spam.`);
+      setTestEmailMessageType("success");
+    } catch (error) {
+      setTestEmailMessage(
+        error instanceof Error ? error.message : "Email tes gagal dikirim.",
+      );
+      setTestEmailMessageType("error");
+    } finally {
+      setIsSendingTestEmail(false);
     }
   }
 
@@ -486,6 +522,43 @@ export default function AdminDashboard({ email }: { email: string }) {
               </ul>
             )}
           </div>
+        </section>
+
+        <section className="generator-card bonus-admin-card" aria-labelledby="brevo-test-heading">
+          <div className="generator-card-heading">
+            <span className="generator-icon" aria-hidden="true">✉</span>
+            <div>
+              <p className="form-kicker">BREVO TRANSACTIONAL EMAIL</p>
+              <h2 id="brevo-test-heading">Kirim email tes</h2>
+            </div>
+          </div>
+          <p className="generator-hint">
+            Mengirim satu email tes langsung melalui Brevo, tanpa checkout Lynk.id.
+          </p>
+          <form className="bonus-admin-form" onSubmit={handleSendTestEmail}>
+            <label htmlFor="test-email">Email penerima</label>
+            <input
+              id="test-email"
+              type="email"
+              autoComplete="email"
+              value={testEmail}
+              onChange={(event) => setTestEmail(event.target.value)}
+              required
+            />
+            {testEmailMessage && (
+              <p className={`form-message ${testEmailMessageType}`} role="status">
+                {testEmailMessage}
+              </p>
+            )}
+            <button
+              className="submit-button bonus-admin-submit"
+              type="submit"
+              disabled={isSendingTestEmail}
+            >
+              {isSendingTestEmail ? "Mengirim melalui Brevo..." : "Kirim email tes"}
+              {!isSendingTestEmail && <span aria-hidden="true">↗</span>}
+            </button>
+          </form>
         </section>
 
         <a className="admin-back-link" href="/">← Kembali ke JOOLO</a>

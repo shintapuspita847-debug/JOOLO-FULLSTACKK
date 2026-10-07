@@ -86,6 +86,11 @@ automatically in the member dashboard. Set Google Drive sharing to allow
 members with the link to view or download each file. Admins can remove a
 bonus from the dashboard from the same page.
 
+The `/admin` page also provides a **Kirim email tes** form. A signed-in admin
+can send a one-off message directly through Brevo's transactional API without
+a Lynk checkout. It uses `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and optionally
+`BREVO_SENDER_NAME`, all server-side.
+
 ## Lynk.id purchase webhook → access-code email
 
 The server endpoint `/api/webhooks/lynk` accepts successful Lynk.id
