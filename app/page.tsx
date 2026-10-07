@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
@@ -33,6 +35,12 @@ export default function Home() {
       setMessageType("error");
     } else if (params.get("admin") === "setup") {
       setMessage("Pengaturan database admin belum aktif. Jalankan SQL terbaru di supabase/schema.sql.");
+      setMessageType("error");
+    } else if (params.get("dashboard") === "login") {
+      setMessage("Silakan login untuk membuka dashboard.");
+      setMessageType("error");
+    } else if (params.get("dashboard") === "setup") {
+      setMessage("Setup onboarding Supabase belum diterapkan. Jalankan SQL terbaru dari supabase/schema.sql.");
       setMessageType("error");
     } else if (params.get("auth") === "success") {
       setMessage("You’re signed in. Welcome to JOOLO.");
@@ -105,8 +113,7 @@ export default function Home() {
           return;
         }
 
-        setMessage("Your account is ready. Welcome to JOOLO!");
-        setMessageType("success");
+        router.replace("/dashboard");
         return;
       }
 
@@ -121,12 +128,8 @@ export default function Home() {
         return;
       }
 
-      setMessage(
-        rememberEmailAfterSignIn()
-          ? "You’re signed in. Welcome back!"
-          : "You’re signed in, but this browser couldn’t remember your email.",
-      );
-      setMessageType("success");
+      rememberEmailAfterSignIn();
+      router.replace("/dashboard");
     } catch {
       setMessage("We couldn’t reach the sign-in service. Please try again.");
       setMessageType("error");
