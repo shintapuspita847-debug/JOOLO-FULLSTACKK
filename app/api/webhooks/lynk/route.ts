@@ -69,7 +69,6 @@ function escapeHtml(value: string) {
 
 export async function POST(request: NextRequest) {
   const merchantKey = process.env.LYNK_MERCHANT_KEY ?? process.env.MERCHANT_KEY;
-  const expectedProductUuid = process.env.LYNK_PRODUCT_UUID;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const brevoApiKey = process.env.BREVO_API_KEY;
@@ -78,7 +77,6 @@ export async function POST(request: NextRequest) {
 
   if (
     !merchantKey ||
-    !expectedProductUuid ||
     !supabaseUrl ||
     !serviceRoleKey ||
     !brevoApiKey ||
@@ -87,7 +85,6 @@ export async function POST(request: NextRequest) {
     console.error("Lynk webhook: server configuration is incomplete.", {
       missing: [
         !merchantKey && "LYNK_MERCHANT_KEY",
-        !expectedProductUuid && "LYNK_PRODUCT_UUID",
         !supabaseUrl && "NEXT_PUBLIC_SUPABASE_URL",
         !serviceRoleKey && "SUPABASE_SERVICE_ROLE_KEY",
         !brevoApiKey && "BREVO_API_KEY",
@@ -165,27 +162,26 @@ export async function POST(request: NextRequest) {
     return jsonError("Email pembeli tidak valid pada payload Lynk.id.", 400);
   }
 
-  const purchasedItems = Array.isArray(order.items) ? order.items : [];
-  const product = purchasedItems.find(
-    (item) => item.uuid === expectedProductUuid,
-  );
+  const purchasedItems = Array.isArray(order.items)
+    ? order.items.filter(
+        (item) =>
+          typeof item?.uuid === "string" && item.uuid.trim().length > 0,
+      )
+    : [];
 
-  if (!product) {
-    console.warn("Lynk webhook: successful payment did not contain configured product.", {
+  if (purchasedItems.length === 0) {
+    console.error("Lynk webhook: successful payment has no identifiable items.", {
       reference,
-      expectedProductConfigured: Boolean(expectedProductUuid),
-      itemCount: purchasedItems.length,
     });
-    return NextResponse.json({
-      received: true,
-      ignored: true,
-      reason: "Produk ini tidak menerbitkan kode JOOLO.",
-    });
+    return jsonError("Payload pembayaran tidak memiliki item produk yang valid.", 400);
   }
 
   const rawCode = generateAccessCode();
+  const product = purchasedItems[0];
   const productTitle =
-    typeof product.title === "string" ? product.title.slice(0, 200) : "JOOLO 40-Day Challenge";
+    typeof product.title === "string" && product.title.trim()
+      ? product.title.trim().slice(0, 200)
+      : "JOOLO 40-Day Challenge";
   const amountNumber = Number(amount);
 
   if (!Number.isSafeInteger(amountNumber) || amountNumber < 0) {
