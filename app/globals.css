@@ -936,6 +936,138 @@ a {
   letter-spacing: 0.2px;
 }
 
+.bonus-admin-card {
+  margin-top: 20px;
+}
+
+.bonus-admin-form {
+  display: grid;
+  gap: 9px;
+}
+
+.bonus-admin-form label {
+  margin-top: 7px;
+  color: #d5d1e1;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bonus-admin-form input,
+.bonus-admin-form textarea,
+.bonus-admin-form select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid rgba(199, 188, 230, 0.17);
+  border-radius: 9px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.035);
+  color: #f4f0ff;
+  font: inherit;
+  font-size: 12px;
+}
+
+.bonus-admin-form textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.bonus-admin-form select option {
+  background: #171529;
+  color: #f4f0ff;
+}
+
+.bonus-admin-form input:focus,
+.bonus-admin-form textarea:focus,
+.bonus-admin-form select:focus {
+  border-color: rgba(183, 153, 255, 0.66);
+  box-shadow: 0 0 0 3px rgba(166, 130, 244, 0.1);
+}
+
+.bonus-admin-submit {
+  width: 100%;
+  margin-top: 7px;
+}
+
+.bonus-admin-list {
+  margin-top: 30px;
+  padding-top: 21px;
+  border-top: 1px solid rgba(204, 194, 230, 0.1);
+}
+
+.bonus-admin-list h3 {
+  margin: 0 0 12px;
+  color: #e6dff4;
+  font-size: 12px;
+}
+
+.bonus-admin-list ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bonus-admin-list li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+  padding: 9px;
+  border: 1px solid rgba(199, 188, 230, 0.12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.bonus-admin-list li img {
+  width: 46px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bonus-admin-list li > span {
+  min-width: 0;
+  flex: 1;
+}
+
+.bonus-admin-list li strong,
+.bonus-admin-list li small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bonus-admin-list li strong {
+  color: #e5dafa;
+  font-size: 11px;
+}
+
+.bonus-admin-list li small {
+  margin-top: 4px;
+  color: #8a849e;
+  font-size: 9px;
+}
+
+.bonus-admin-delete {
+  padding: 7px 9px;
+  border: 1px solid rgba(242, 151, 160, 0.24);
+  border-radius: 7px;
+  background: rgba(242, 151, 160, 0.06);
+  color: #e6adb4;
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.bonus-admin-delete:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .code-warning {
   margin: 12px 0 0;
   color: #a78e68;
@@ -1562,6 +1694,30 @@ a {
   text-shadow: 0 0 10px rgba(242, 197, 216, 0.7);
 }
 
+.bonus-art-image {
+  background: #201a34;
+}
+
+.bonus-art-image > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bonus-file-label {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 7px;
+  border: 1px solid rgba(240, 221, 255, 0.4);
+  border-radius: 5px;
+  background: rgba(18, 16, 35, 0.86);
+  color: #f2e4ff;
+  font-family: monospace;
+  font-size: 9px;
+  font-weight: 700;
+}
+
 .bonus-excel .bonus-art-star {
   color: #bae2c7;
   text-shadow: 0 0 10px rgba(186, 226, 199, 0.7);
@@ -1615,6 +1771,10 @@ a {
   font-size: 10px;
   font-weight: 600;
   transition: background 150ms ease, border-color 150ms ease;
+}
+
+.bonus-download:is(a) {
+  text-decoration: none;
 }
 
 .bonus-download:hover:not(:disabled) {

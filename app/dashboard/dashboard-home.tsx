@@ -8,6 +8,15 @@ type DashboardHomeProps = {
   email: string;
   fullName: string;
   onboardingCompletedAt: string;
+  bonuses: {
+    id: string;
+    name: string;
+    description: string;
+    file_type: "pdf" | "excel";
+    image_url: string;
+    drive_url: string;
+  }[];
+  bonusLoadError: string;
 };
 
 function formatDate(value: string) {
@@ -22,6 +31,8 @@ export default function DashboardHome({
   email,
   fullName,
   onboardingCompletedAt,
+  bonuses,
+  bonusLoadError,
 }: DashboardHomeProps) {
   const [downloading, setDownloading] = useState<"pdf" | "excel" | "">("");
   const [downloadMessage, setDownloadMessage] = useState("");
@@ -317,8 +328,41 @@ export default function DashboardHome({
                 </button>
               </div>
             </article>
+
+            {bonuses.map((bonus) => (
+              <article
+                className={`bonus-card ${bonus.file_type === "excel" ? "bonus-excel" : "bonus-pdf"}`}
+                key={bonus.id}
+              >
+                <div className="bonus-art bonus-art-image">
+                  <img src={bonus.image_url} alt="" loading="lazy" />
+                  <span className="bonus-file-label">
+                    {bonus.file_type === "pdf" ? "PDF" : "XLSX"}
+                  </span>
+                </div>
+                <div className="bonus-card-content">
+                  <span className="bonus-tag">MEMBER BONUS</span>
+                  <h3>{bonus.name}</h3>
+                  <p>{bonus.description}</p>
+                  <a
+                    className="bonus-download"
+                    href={bonus.drive_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Buka {bonus.file_type === "pdf" ? "PDF" : "Excel"}
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                </div>
+              </article>
+            ))}
           </div>
 
+          {bonusLoadError && (
+            <p className="bonus-download-message" role="status">
+              {bonusLoadError}
+            </p>
+          )}
           {downloadMessage && (
             <p className="bonus-download-message" role="status">
               {downloadMessage}

@@ -77,7 +77,14 @@ reflection journal (`.pdf`) and an editable 40-day challenge tracker
 (`.xlsx`). The spreadsheet includes a tracker sheet and a short getting-started
 guide; neither download sends member data to an external service. Files are
 generated when downloaded, so no separate bonus-file hosting or SQL setup is
-required.
+required for these two built-in bonuses.
+
+Admins can add additional PDF or Excel bonuses from `/admin` by entering a
+name, short description, HTTPS cover-image URL, and Google Drive file URL.
+After running the latest `supabase/schema.sql`, saved bonuses appear
+automatically in the member dashboard. Set Google Drive sharing to allow
+members with the link to view or download each file. Admins can remove a
+bonus from the dashboard from the same page.
 
 ## Lynk.id purchase webhook → access-code email
 

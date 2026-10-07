@@ -1,12 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type GeneratedBatch = {
   codes: string[];
   createdAt: string;
   expiresAt: string;
+};
+
+type BonusResource = {
+  id: string;
+  name: string;
+  description: string;
+  file_type: "pdf" | "excel";
+  image_url: string;
+  drive_url: string;
+  created_at: string;
 };
 
 function formatDate(value: string) {
@@ -99,6 +109,107 @@ export default function AdminDashboard({ email }: { email: string }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [bonuses, setBonuses] = useState<BonusResource[]>([]);
+  const [isLoadingBonuses, setIsLoadingBonuses] = useState(true);
+  const [isSavingBonus, setIsSavingBonus] = useState(false);
+  const [deletingBonusId, setDeletingBonusId] = useState("");
+  const [bonusMessage, setBonusMessage] = useState("");
+  const [bonusMessageType, setBonusMessageType] = useState<"success" | "error">("success");
+
+  useEffect(() => {
+    async function loadBonuses() {
+      try {
+        const response = await fetch("/api/admin/bonuses");
+        const result = (await response.json()) as {
+          bonuses?: BonusResource[];
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(result.error ?? "Daftar bonus gagal dimuat.");
+        }
+        setBonuses(result.bonuses ?? []);
+      } catch (error) {
+        setBonusMessage(
+          error instanceof Error ? error.message : "Daftar bonus gagal dimuat.",
+        );
+        setBonusMessageType("error");
+      } finally {
+        setIsLoadingBonuses(false);
+      }
+    }
+
+    void loadBonuses();
+  }, []);
+
+  async function handleCreateBonus(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBonusMessage("");
+    setIsSavingBonus(true);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch("/api/admin/bonuses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("bonusName"),
+          description: formData.get("bonusDescription"),
+          fileType: formData.get("bonusFileType"),
+          imageUrl: formData.get("bonusImageUrl"),
+          driveUrl: formData.get("bonusDriveUrl"),
+        }),
+      });
+      const result = (await response.json()) as {
+        bonus?: BonusResource;
+        error?: string;
+      };
+
+      const createdBonus = result.bonus;
+      if (!response.ok || !createdBonus) {
+        throw new Error(result.error ?? "Bonus gagal disimpan.");
+      }
+
+      setBonuses((current) => [createdBonus, ...current]);
+      form.reset();
+      setBonusMessage("Bonus berhasil ditambahkan dan sekarang tampil di dashboard.");
+      setBonusMessageType("success");
+    } catch (error) {
+      setBonusMessage(
+        error instanceof Error ? error.message : "Bonus gagal disimpan.",
+      );
+      setBonusMessageType("error");
+    } finally {
+      setIsSavingBonus(false);
+    }
+  }
+
+  async function handleDeleteBonus(id: string) {
+    setBonusMessage("");
+    setDeletingBonusId(id);
+    try {
+      const response = await fetch("/api/admin/bonuses", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(result.error ?? "Bonus gagal dihapus.");
+      }
+
+      setBonuses((current) => current.filter((bonus) => bonus.id !== id));
+      setBonusMessage("Bonus berhasil dihapus dari dashboard.");
+      setBonusMessageType("success");
+    } catch (error) {
+      setBonusMessage(
+        error instanceof Error ? error.message : "Bonus gagal dihapus.",
+      );
+      setBonusMessageType("error");
+    } finally {
+      setDeletingBonusId("");
+    }
+  }
 
   async function handleGenerate() {
     setMessage("");
@@ -275,6 +386,106 @@ export default function AdminDashboard({ email }: { email: string }) {
               </p>
             </div>
           )}
+        </section>
+
+        <section className="generator-card bonus-admin-card" aria-labelledby="bonus-admin-heading">
+          <div className="generator-card-heading">
+            <span className="generator-icon" aria-hidden="true">✧</span>
+            <div>
+              <p className="form-kicker">MEMBER DOWNLOADS</p>
+              <h2 id="bonus-admin-heading">Tambah bonus PDF atau Excel</h2>
+            </div>
+          </div>
+
+          <form className="bonus-admin-form" onSubmit={handleCreateBonus}>
+            <label htmlFor="bonus-name">Nama file</label>
+            <input
+              id="bonus-name"
+              name="bonusName"
+              type="text"
+              maxLength={120}
+              placeholder="Contoh: Jurnal Refleksi Mingguan"
+              required
+            />
+
+            <label htmlFor="bonus-description">Deskripsi singkat</label>
+            <textarea
+              id="bonus-description"
+              name="bonusDescription"
+              maxLength={500}
+              rows={3}
+              placeholder="Jelaskan manfaat file ini untuk member."
+              required
+            />
+
+            <label htmlFor="bonus-file-type">Jenis file</label>
+            <select id="bonus-file-type" name="bonusFileType" defaultValue="pdf">
+              <option value="pdf">PDF</option>
+              <option value="excel">Excel (.xlsx)</option>
+            </select>
+
+            <label htmlFor="bonus-image-url">Link gambar sampul</label>
+            <input
+              id="bonus-image-url"
+              name="bonusImageUrl"
+              type="url"
+              placeholder="https://example.com/gambar-bonus.jpg"
+              required
+            />
+
+            <label htmlFor="bonus-drive-url">Link file Google Drive</label>
+            <input
+              id="bonus-drive-url"
+              name="bonusDriveUrl"
+              type="url"
+              placeholder="https://drive.google.com/file/d/..."
+              required
+            />
+            <p className="generator-hint">
+              Atur izin berbagi Google Drive agar pengguna yang memiliki link
+              dapat membuka atau mengunduh file.
+            </p>
+
+            {bonusMessage && (
+              <p className={`form-message ${bonusMessageType}`} role="status">
+                {bonusMessage}
+              </p>
+            )}
+
+            <button className="submit-button bonus-admin-submit" type="submit" disabled={isSavingBonus}>
+              {isSavingBonus ? "Menyimpan bonus..." : "Tambahkan ke dashboard"}
+              {!isSavingBonus && <span aria-hidden="true">↗</span>}
+            </button>
+          </form>
+
+          <div className="bonus-admin-list">
+            <h3>Bonus yang tersedia</h3>
+            {isLoadingBonuses ? (
+              <p className="generator-hint">Memuat daftar bonus...</p>
+            ) : bonuses.length === 0 ? (
+              <p className="generator-hint">Belum ada bonus tambahan.</p>
+            ) : (
+              <ul>
+                {bonuses.map((bonus) => (
+                  <li key={bonus.id}>
+                    <img src={bonus.image_url} alt="" />
+                    <span>
+                      <strong>{bonus.name}</strong>
+                      <small>{bonus.file_type === "pdf" ? "PDF" : "Excel"}</small>
+                    </span>
+                    <button
+                      className="bonus-admin-delete"
+                      type="button"
+                      onClick={() => handleDeleteBonus(bonus.id)}
+                      disabled={deletingBonusId !== ""}
+                    >
+                      {deletingBonusId === bonus.id ? "Menghapus..." : "Hapus"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
         <a className="admin-back-link" href="/">← Kembali ke JOOLO</a>

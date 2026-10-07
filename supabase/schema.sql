@@ -477,3 +477,58 @@ grant execute on function public.mark_lynk_email_sent(uuid)
   to service_role;
 grant execute on function public.mark_lynk_email_failed(uuid, text)
   to service_role;
+
+-- Admin-managed downloads shown to authenticated members on the dashboard.
+create table if not exists public.joolo_bonus_resources (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(trim(name)) between 2 and 120),
+  description text not null check (char_length(trim(description)) between 2 and 500),
+  file_type text not null check (file_type in ('pdf', 'excel')),
+  image_url text not null check (image_url ~ '^https://'),
+  drive_url text not null
+    check (drive_url ~ '^https://(drive|docs)\.google\.com/'),
+  is_published boolean not null default true,
+  created_by uuid not null references auth.users (id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.joolo_bonus_resources enable row level security;
+revoke all on public.joolo_bonus_resources from public, anon;
+grant select, insert, update, delete on public.joolo_bonus_resources to authenticated;
+
+drop policy if exists "Members can read published JOOLO bonuses"
+  on public.joolo_bonus_resources;
+create policy "Members can read published JOOLO bonuses"
+  on public.joolo_bonus_resources
+  for select
+  to authenticated
+  using (is_published or (select public.is_joolo_admin()));
+
+drop policy if exists "JOOLO admins can create bonuses"
+  on public.joolo_bonus_resources;
+create policy "JOOLO admins can create bonuses"
+  on public.joolo_bonus_resources
+  for insert
+  to authenticated
+  with check (
+    (select public.is_joolo_admin())
+    and created_by = (select auth.uid())
+  );
+
+drop policy if exists "JOOLO admins can update bonuses"
+  on public.joolo_bonus_resources;
+create policy "JOOLO admins can update bonuses"
+  on public.joolo_bonus_resources
+  for update
+  to authenticated
+  using ((select public.is_joolo_admin()))
+  with check ((select public.is_joolo_admin()));
+
+drop policy if exists "JOOLO admins can delete bonuses"
+  on public.joolo_bonus_resources;
+create policy "JOOLO admins can delete bonuses"
+  on public.joolo_bonus_resources
+  for delete
+  to authenticated
+  using ((select public.is_joolo_admin()));
