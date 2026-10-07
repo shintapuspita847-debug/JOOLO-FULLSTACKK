@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createGrowthTrackerWorkbook } from "@/lib/growth-tracker";
 
@@ -34,9 +35,27 @@ export default function DashboardHome({
   bonuses,
   bonusLoadError,
 }: DashboardHomeProps) {
+  const router = useRouter();
   const [downloading, setDownloading] = useState<"pdf" | "excel" | "">("");
   const [downloadMessage, setDownloadMessage] = useState("");
   const firstName = fullName.trim().split(/\s+/)[0] || "friend";
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        router.refresh();
+      }
+    };
+    const interval = window.setInterval(refreshWhenVisible, 15_000);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("focus", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refreshWhenVisible);
+    };
+  }, [router]);
 
   async function downloadJournal() {
     setDownloading("pdf");
@@ -275,7 +294,17 @@ export default function DashboardHome({
               <h2 id="bonus-heading">Your cosmic bonuses.</h2>
               <p>Free tools to help you stay present through all 40 days.</p>
             </div>
-            <span className="bonus-heading-star" aria-hidden="true">✧</span>
+            <div className="bonus-heading-actions">
+              <button
+                className="bonus-refresh"
+                type="button"
+                onClick={() => router.refresh()}
+                aria-label="Refresh bonus list"
+              >
+                Refresh
+              </button>
+              <span className="bonus-heading-star" aria-hidden="true">✧</span>
+            </div>
           </div>
 
           <div className="bonus-grid">
